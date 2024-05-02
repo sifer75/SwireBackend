@@ -21,22 +21,18 @@ export default class UsersController {
       await user.save()
       return response.status(201).json(user)
     } catch (e) {
-      console.log(e)
       return response.status(500).json({ e: 'impossible de créer le user' })
     }
   }
 
   async updateUser({ request, response, auth }: HttpContext) {
     try {
-      console.log(auth, 'eeee')
-
       if (!auth || !auth.user || !auth.user.id) {
         return response.status(400).json({ error: 'cookie non trouvé' })
       }
       const data = request.only(['name', 'age', 'visible'])
       const userId = auth.user.id
       const user = await User.find(userId)
-      console.log(user)
       if (!user) {
         return response.status(400).json({ error: 'Utilisateur non trouvé' })
       }
@@ -47,7 +43,6 @@ export default class UsersController {
       await user.save()
       return response.status(201).json(user)
     } catch (e) {
-      console.log(e)
       return response.status(500).json({ e: 'impossible de créer le user' })
     }
   }
@@ -154,7 +149,6 @@ export default class UsersController {
     }
 
     if (linkedin.stateMisMatch()) {
-      console.log('stateMisMatch')
       return 'We are unable to verify the request. Please try again'
     }
 
@@ -163,7 +157,6 @@ export default class UsersController {
     }
 
     const user = await linkedin.user()
-    console.log(user, 'zzzzzzzzzzzzzzzzzzzzzzzzzzz')
 
     return user
   }

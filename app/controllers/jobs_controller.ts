@@ -1,3 +1,4 @@
+import Company from '#models/company'
 import Job from '#models/job'
 import Like from '#models/like'
 import User from '#models/user'
@@ -7,34 +8,184 @@ import db from '@adonisjs/lucid/services/db'
 export default class JobsController {
   // creer un job
 
-  async createJob({ request, response }: HttpContext) {
+  async createJobPreferences({ request, response }: HttpContext) {
     try {
-      const { name, image, time, language, disponibility, location, target, fields } = request.only(
-        ['name', 'image', 'time', 'language', 'disponibility', 'location', 'target', 'fields']
-      )
+      // if (!auth || !auth.user || !auth.user.id) {
+      //   return response.status(400).json({ error: 'cookie non trouvé' })
+      // }
+      // const userId = auth.user.id
+      // console.log(userId)
 
-      const job = await Job.create({
-        name: name,
-        image: image,
-        time: time,
-        language: language,
-        disponibility: disponibility,
-        location: location,
-        target: target,
-        fields: fields,
-      })
+      const {
+        name,
+        time,
+        salary,
+        location,
+        workRhythm,
+      }: {
+        name: string
+        time: number
+        salary: number
+        location: string
+        workRhythm: ('hybrid' | 'on_site' | 'remote')[] | null
+      } = request.only(['name', 'time', 'salary', 'location', 'workRhythm'])
+
+      const job = new Job()
+      job.name = name
+      job.time = time
+      job.salary = salary
+      job.location = location
+      job.work_rhythm = workRhythm
+      await job.save()
+      return response.status(201).json(job)
+    } catch (error) {
+      console.log(error)
+      return response.status(500).send({ message: 'impossible de créer le job', error })
+    }
+  }
+
+  async updateJobDescription({ params, request, response }: HttpContext) {
+    try {
+      const { jobDescription, mission, competence, description, value } = request.only([
+        'jobDescription',
+        'mission',
+        'competence',
+        'description',
+        'value',
+      ])
+
+      const jobId = await params.id
+      const job = await Job.findOrFail(jobId)
+      job.job_description = jobDescription
+      job.mission = mission
+      job.competence = competence
+      job.description = description
+      job.value = value
+      await job.save()
 
       return response.status(201).json(job)
     } catch (error) {
-      return response.status(500).json({ error: 'Impossible de créer le job' })
+      return response.status(500).json({ error: 'Impossible de créer la description du job' })
+    }
+  }
+
+  async updateMatch({ params, request, response }: HttpContext) {
+    try {
+      const { studyLevel, fieldOfStudy, internshipDuration, yearsOfExperience } = request.only([
+        'studyLevel',
+        'yearsOfExperience',
+        'internshipDuration',
+        'fieldOfStudy',
+      ])
+
+      const jobId = await params.id
+      // console.log(params, 'dddddd')
+      // console.log(studyLevel, fieldOfStudy, internshipDuration, yearsOfExperience)
+
+      const job = await Job.findOrFail(jobId)
+      if (!job) {
+        return response.status(404).json({ error: 'Job not found' })
+      }
+      job.study_level = studyLevel
+      job.field_of_study = fieldOfStudy
+      job.internship_duration = internshipDuration
+      job.years_of_experience = yearsOfExperience
+      await job.save()
+
+      return response.status(201).json(job)
+    } catch (error) {
+      console.log(error)
+      return response.status(500).json({ error: 'Impossible de créer les critères du job' })
+    }
+  }
+
+  async createQuestion({ params, request, response }: HttpContext) {
+    try {
+      const { question } = request.only(['question'])
+      const jobId = await params.id
+      const job = await Job.findOrFail(jobId)
+      if (!job) {
+        return response.status(404).json({ error: 'Job not found' })
+      }
+      let questionArray: string[] = job.question || []
+      questionArray.push(question)
+      job.question = questionArray
+      await job.save()
+      return response.status(201).json(job)
+    } catch (error) {
+      console.log(error)
+      return response.status(500).json({ error: 'Impossible de créer les questions du job' })
+    }
+  }
+
+  async getQuestion({ params, response }: HttpContext) {
+    try {
+      const jobId = await params.id
+      const job = await Job.findOrFail(jobId)
+      if (!job) {
+        return response.status(404).json({ error: 'Job not found' })
+      }
+
+      const questions = job.question || []
+
+      return response.status(201).json(questions)
+    } catch (error) {
+      console.log(error)
+      return response.status(500).json({ error: 'Impossible de créer les questions du job' })
     }
   }
 
   // supprimer un job
 
+  async getJob({ auth, response }: HttpContext) {
+    try {
+      if (!auth || !auth.user || auth.user.id) {
+        return response.status(400).json({ error: 'cookie non trouvé' })
+      }
+      const companyId = auth.user.id
+      const company = await Company.find(companyId)
+      console.log(companyId, company)
+      if (!company) {
+        return response.status(400).json({ error: 'Companie non trouvé' })
+      }
+      const jobs = await company.related('jobs').query().fetch()
+
+      const jobNumber = jobs.length || 0
+      return response.status(200).json(jobNumber)
+    } catch (e) {
+      return response.json({ e: "impossible de supprimer l'offre" })
+    }
+  }
+
+  async updateUser({ request, response, auth }: HttpContext) {
+    try {
+      if (!auth || !auth.user || !auth.user.id) {
+        return response.status(400).json({ error: 'cookie non trouvé' })
+      }
+      const data = request.only(['name', 'age', 'visible'])
+      const userId = auth.user.id
+      const user = await User.find(userId)
+      if (!user) {
+        return response.status(400).json({ error: 'Utilisateur non trouvé' })
+      }
+      user.name = data.name
+      user.age = data.age
+      user.visible = data.visible
+
+      await user.save()
+      return response.status(201).json(user)
+    } catch (e) {
+      return response.status(500).json({ e: 'impossible de créer le user' })
+    }
+  }
   async deleteJob({ params, response }: HttpContext) {
     try {
       const jobId = await params.id
+      if (!jobId) {
+        return response.status(500).json({
+          e: 'jobs de la companie non trouvé',
+        })
+      }
       const job = await Job.findOrFail(jobId)
       await job.delete()
       return response.status(200).json(job)
@@ -58,7 +209,6 @@ export default class JobsController {
       const likedOrDislikedJobs = await Like.all()
       const idJobs = likedOrDislikedJobs.map((job) => job.job_id)
       const formattedArray = idJobs.length > 0 ? `('${idJobs.join("', '")}')` : '(NULL)'
-      console.log(formattedArray)
 
       // faire en sorte que l'id dans idJobs ne soit pas dans la sélection des jobs
       const jobfiltered: any = await db.rawQuery(`
@@ -92,7 +242,6 @@ export default class JobsController {
   ORDER BY 
       percentage DESC;
       `)
-      console.log(jobfiltered, 'zzzz')
       return response.status(200).json(jobfiltered.rows)
     } catch (e) {
       return response.status(500).json({
@@ -188,7 +337,6 @@ export default class JobsController {
       const jobsLiked = await Like.query()
         .where('like_status', 'like')
         .andWhere('user_id', '=', user.id)
-      console.log(jobsLiked)
       return response.status(200).json(jobsLiked)
     } catch (e) {
       return response

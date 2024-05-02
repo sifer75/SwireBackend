@@ -15,22 +15,60 @@ export default class Job extends BaseModel {
   declare image: string
 
   @column()
-  declare time: string
+  declare time: number
+
+  @column()
+  declare salary: number
+
+  @column()
+  declare job_description: string
+
+  @column()
+  declare mission: string
+
+  @column()
+  declare competence: string
+
+  @column()
+  declare description: string
+
+  @column()
+  declare value: string
+
+  @column()
+  declare work_rhythm: ('hybrid' | 'on_site' | 'remote')[] | null
+
+  @column()
+  declare study_level: ('phd' | 'master' | 'underground' | 'highschool')[] | null
+
+  @column()
+  declare field_of_study:
+    | ('design' | 'engineering' | 'business_administration' | 'marketing')[]
+    | null
+
+  @column()
+  declare internship_duration: number | null
+
+  @column()
+  declare years_of_experience: ('10years' | '5-10years' | '3-5years' | '-3years')[] | null
 
   @column()
   declare language: string
 
   @column()
-  declare disponibility: 'internship' | 'apprenticeship' | 'CDI' | 'CDD'
+  declare disponibility: 'internship' | 'apprenticeship' | 'CDI' | 'CDD' | null
 
   @column()
-  declare location: 'paris'
+  declare location: string
 
   @column()
-  declare target: 'large company' | 'start-up' | 'public institution' | 'SME'
+  declare question: string[]
 
   @column()
-  declare fields: 'marketing and PR' | 'admin and assistance' | 'design' | 'human ressources'
+  declare target: 'large company' | 'start-up' | 'public institution' | 'SME' | null
+
+  @column()
+  declare fields: 'marketing and PR' | 'admin and assistance' | 'design' | 'human ressources' | null
 
   @belongsTo(() => Company)
   declare company: BelongsTo<typeof Company>
