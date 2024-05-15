@@ -2,7 +2,11 @@ import Company from '#models/company'
 import Job from '#models/job'
 import Like from '#models/like'
 import User from '#models/user'
+import { cuid } from '@adonisjs/core/helpers'
 import type { HttpContext } from '@adonisjs/core/http'
+import app from '@adonisjs/core/services/app'
+import path from 'node:path'
+import fs from 'node:fs'
 import db from '@adonisjs/lucid/services/db'
 
 export default class JobsController {
@@ -10,32 +14,72 @@ export default class JobsController {
 
   async createJobPreferences({ request, response }: HttpContext) {
     try {
-      // if (!auth || !auth.user || !auth.user.id) {
-      //   return response.status(400).json({ error: 'cookie non trouvé' })
-      // }
-      // const userId = auth.user.id
-      // console.log(userId)
+      const getExtensionFromBase64 = (base64Data: string): string => {
+        const extensionRegExp = /(?:image\/)(\w+)/
+        const result = base64Data.match(extensionRegExp)
+        if (result && result.length === 2) {
+          return result[1]
+        } else {
+          throw new Error(
+            "Impossible de déterminer l'extension du fichier à partir des données base64."
+          )
+        }
+      }
 
       const {
         name,
-        time,
         salary,
         location,
+        language,
         workRhythm,
+        disponibility,
+        fields,
+        target,
+        imageFont,
       }: {
         name: string
-        time: number
         salary: number
         location: string
-        workRhythm: ('hybrid' | 'on_site' | 'remote')[] | null
-      } = request.only(['name', 'time', 'salary', 'location', 'workRhythm'])
+        language: string
+        target: string[]
+        fields: string[]
+        disponibility: string[]
+        workRhythm: string[]
+        imageFont: string
+      } = request.only([
+        'name',
+        'salary',
+        'location',
+        'workRhythm',
+        'disponibility',
+        'language',
+        'target',
+        'fields',
+        'imageFont',
+      ])
+      if (!imageFont) {
+        return response.status(400).send({ message: "Aucune image n'a été téléchargée." })
+      }
+      const base64Data = imageFont.replace(/^data:image\/\w+;base64,/, '')
+      const dataBuffer = Buffer.from(base64Data, 'base64')
+      const fileName = `${cuid()}.${getExtensionFromBase64(imageFont)}`
+      const uploadsDirectory = app.makePath('uploads')
+      if (!fs.existsSync(uploadsDirectory)) {
+        fs.mkdirSync(uploadsDirectory, { recursive: true })
+      }
+      const filePath = path.join(app.makePath('uploads'), fileName)
+      fs.writeFileSync(filePath, dataBuffer)
 
       const job = new Job()
       job.name = name
-      job.time = time
       job.salary = salary
       job.location = location
       job.work_rhythm = workRhythm
+      job.disponibility = disponibility
+      job.target = target
+      job.fields = fields
+      job.language = language
+      job.image_font = fileName
       await job.save()
       return response.status(201).json(job)
     } catch (error) {
@@ -53,7 +97,6 @@ export default class JobsController {
         'description',
         'value',
       ])
-
       const jobId = await params.id
       const job = await Job.findOrFail(jobId)
       job.job_description = jobDescription
@@ -62,7 +105,6 @@ export default class JobsController {
       job.description = description
       job.value = value
       await job.save()
-
       return response.status(201).json(job)
     } catch (error) {
       return response.status(500).json({ error: 'Impossible de créer la description du job' })
@@ -71,27 +113,22 @@ export default class JobsController {
 
   async updateMatch({ params, request, response }: HttpContext) {
     try {
-      const { studyLevel, fieldOfStudy, internshipDuration, yearsOfExperience } = request.only([
+      const { studyLevel, fieldOfStudy, duration, experience } = request.only([
         'studyLevel',
-        'yearsOfExperience',
-        'internshipDuration',
+        'experience',
+        'duration',
         'fieldOfStudy',
       ])
-
       const jobId = await params.id
-      // console.log(params, 'dddddd')
-      // console.log(studyLevel, fieldOfStudy, internshipDuration, yearsOfExperience)
-
       const job = await Job.findOrFail(jobId)
       if (!job) {
         return response.status(404).json({ error: 'Job not found' })
       }
       job.study_level = studyLevel
       job.field_of_study = fieldOfStudy
-      job.internship_duration = internshipDuration
-      job.years_of_experience = yearsOfExperience
+      job.duration = duration
+      job.experience = experience
       await job.save()
-
       return response.status(201).json(job)
     } catch (error) {
       console.log(error)
@@ -109,6 +146,7 @@ export default class JobsController {
       }
       let questionArray: string[] = job.question || []
       questionArray.push(question)
+      console.log(questionArray)
       job.question = questionArray
       await job.save()
       return response.status(201).json(job)
@@ -125,9 +163,7 @@ export default class JobsController {
       if (!job) {
         return response.status(404).json({ error: 'Job not found' })
       }
-
       const questions = job.question || []
-
       return response.status(201).json(questions)
     } catch (error) {
       console.log(error)
@@ -135,7 +171,7 @@ export default class JobsController {
     }
   }
 
-  // supprimer un job
+  // avoir les jobs avec une queue
 
   async getJob({ auth, response }: HttpContext) {
     try {
@@ -144,12 +180,10 @@ export default class JobsController {
       }
       const companyId = auth.user.id
       const company = await Company.find(companyId)
-      console.log(companyId, company)
       if (!company) {
         return response.status(400).json({ error: 'Companie non trouvé' })
       }
-      const jobs = await company.related('jobs').query().fetch()
-
+      const jobs = await company.related('jobs').query()
       const jobNumber = jobs.length || 0
       return response.status(200).json(jobNumber)
     } catch (e) {
@@ -171,13 +205,15 @@ export default class JobsController {
       user.name = data.name
       user.age = data.age
       user.visible = data.visible
-
       await user.save()
       return response.status(201).json(user)
     } catch (e) {
       return response.status(500).json({ e: 'impossible de créer le user' })
     }
   }
+
+  // supprimer un job
+
   async deleteJob({ params, response }: HttpContext) {
     try {
       const jobId = await params.id
@@ -202,50 +238,191 @@ export default class JobsController {
       const user = auth.user
       if (!user) {
         return response.status(500).json({
-          e: "impossible de filtrer les jobs à partir des attentes de l'utilisateur",
+          e: "Impossible de filtrer les jobs à partir des attentes de l'utilisateur",
         })
       }
+
       const preferencesUser = await User.findOrFail(user.id)
+      if (
+        !preferencesUser.experience ||
+        !preferencesUser.duration ||
+        !preferencesUser.work_rhythm ||
+        !preferencesUser.disponibility ||
+        !preferencesUser.fields ||
+        !preferencesUser.target
+      ) {
+        return response.status(500).json({
+          e: "Impossible de filtrer les jobs à partir des attentes de l'utilisateur",
+        })
+      }
       const likedOrDislikedJobs = await Like.all()
       const idJobs = likedOrDislikedJobs.map((job) => job.job_id)
       const formattedArray = idJobs.length > 0 ? `('${idJobs.join("', '")}')` : '(NULL)'
 
-      // faire en sorte que l'id dans idJobs ne soit pas dans la sélection des jobs
-      const jobfiltered: any = await db.rawQuery(`
-      SELECT 
-      jobs.*,  
-      ( 
-          (
-              (CASE WHEN jobs.location = '${preferencesUser.location}' THEN 1 ELSE 0 END) +
-              (CASE WHEN jobs.fields = '${preferencesUser.fields}' THEN 1 ELSE 0 END) +
-              (CASE WHEN jobs.disponibility = '${preferencesUser.disponibility}' THEN 1 ELSE 0 END) +
-              (CASE WHEN jobs.target = '${preferencesUser.target}' THEN 1 ELSE 0 END)
-          ) / 4.0 * 100
-      ) AS percentage
-  FROM 
-      jobs 
-  JOIN 
-      users ON jobs.location = '${preferencesUser.location}'
-          OR jobs.fields = '${preferencesUser.fields}'
-          OR jobs.disponibility = '${preferencesUser.disponibility}'
-          OR jobs.target = '${preferencesUser.target}'
-  WHERE 
-      ( ${formattedArray} IS NULL OR jobs.id NOT IN ${formattedArray}) AND
-      (
-          (
-              (CASE WHEN jobs.location = '${preferencesUser.location}' THEN 1 ELSE 0 END) +
-              (CASE WHEN jobs.fields = '${preferencesUser.fields}' THEN 1 ELSE 0 END) +
-              (CASE WHEN jobs.disponibility = '${preferencesUser.disponibility}' THEN 1 ELSE 0 END) +
-              (CASE WHEN jobs.target = '${preferencesUser.target}' THEN 1 ELSE 0 END)
-          ) / 4.0 * 100
-      ) > 0
-  ORDER BY 
-      percentage DESC;
-      `)
+      // Convertir les valeurs nettoyées en chaînes de caractères pour la requête SQL
+      const experienceString = `ARRAY['${preferencesUser.experience.join("', '")}']`
+      const fieldsString = `ARRAY['${preferencesUser.fields.join("', '")}']`
+      const disponibilityString = `ARRAY['${preferencesUser.disponibility.join("', '")}']`
+      const durationString = `ARRAY['${preferencesUser.duration.join("', '")}']`
+      const workRhythmString = `ARRAY['${preferencesUser.work_rhythm.join("', '")}']`
+      const targetString = `ARRAY['${preferencesUser.target.join("', '")}']`
+      console.log(
+        experienceString,
+        fieldsString,
+        disponibilityString,
+        durationString,
+        workRhythmString,
+        targetString,
+        'coucou'
+      )
+      console.log(
+        preferencesUser.experience,
+        preferencesUser.fields,
+        preferencesUser.disponibility,
+        preferencesUser.duration,
+        preferencesUser.work_rhythm,
+        preferencesUser.target,
+        'coucou2'
+      )
+
+      const jobfiltered: any = await db.rawQuery(
+        `   
+
+
+        SELECT jobs.*,  
+        ( 
+            (
+                (CASE WHEN ARRAY(SELECT unnest(${experienceString})) && ARRAY(SELECT unnest(jobs.experience)) THEN 1 ELSE 0 END) +
+                (CASE WHEN ARRAY(SELECT unnest(${fieldsString})) && ARRAY(SELECT unnest(jobs.fields)) THEN 1 ELSE 0 END) +
+                (CASE WHEN ARRAY(SELECT unnest(${disponibilityString})) && ARRAY(SELECT unnest(jobs.disponibility)) THEN 1 ELSE 0 END) +
+                (CASE WHEN ARRAY(SELECT unnest(${durationString})) && ARRAY(SELECT unnest(jobs.duration)) THEN 1 ELSE 0 END) +
+                (CASE WHEN ARRAY(SELECT unnest(${workRhythmString})) && ARRAY(SELECT unnest(jobs.work_rhythm)) THEN 1 ELSE 0 END) +
+                (CASE WHEN ARRAY(SELECT unnest(${targetString})) && ARRAY(SELECT unnest(jobs.target)) THEN 1 ELSE 0 END)
+            ) / 6.0 * 100
+        ) AS pourcentage
+    FROM 
+        jobs, users
+    WHERE ( ${formattedArray} IS NULL OR jobs.id NOT IN ${formattedArray}) AND
+        (
+            (
+                (CASE WHEN ARRAY(SELECT unnest(${experienceString})) && ARRAY(SELECT unnest(jobs.experience)) THEN 1 ELSE 0 END) +
+                (CASE WHEN ARRAY(SELECT unnest(${fieldsString})) && ARRAY(SELECT unnest(jobs.fields)) THEN 1 ELSE 0 END) +
+                (CASE WHEN ARRAY(SELECT unnest(${disponibilityString})) && ARRAY(SELECT unnest(jobs.disponibility)) THEN 1 ELSE 0 END) +
+                (CASE WHEN ARRAY(SELECT unnest(${durationString})) && ARRAY(SELECT unnest(jobs.duration)) THEN 1 ELSE 0 END) +
+                (CASE WHEN ARRAY(SELECT unnest(${workRhythmString})) && ARRAY(SELECT unnest(jobs.work_rhythm)) THEN 1 ELSE 0 END) +
+                (CASE WHEN ARRAY(SELECT unnest(${targetString})) && ARRAY(SELECT unnest(jobs.target)) THEN 1 ELSE 0 END)
+            ) / 6.0 * 100
+        ) > 0
+    ORDER BY 
+        pourcentage DESC;
+    `
+      )
+
+      // SELECT jobs.*,
+      // (
+      //   (  CASE
+      //         WHEN EXISTS (
+      //             SELECT 1
+      //             FROM unnest(jobs.work_rhythm) AS jr
+      //             CROSS JOIN LATERAL unnest('${preferencesUser.work_rhythm}') AS ur
+      //             WHERE jr = ur
+      //         ) THEN 1
+      //         ELSE 0
+      //     END ) +
+      // 	(  CASE
+      //         WHEN EXISTS (
+      //             SELECT 1
+      //             FROM unnest(jobs.duration) AS jr
+      //             CROSS JOIN LATERAL unnest('${preferencesUser.duration}') AS ur
+      //             WHERE jr = ur
+      //         ) THEN 1
+      //         ELSE 0
+      //     END ) +
+      // 	(  CASE
+      //         WHEN EXISTS (
+      //             SELECT 1
+      //             FROM unnest(jobs.experience) AS jr
+      //             CROSS JOIN LATERAL unnest('${preferencesUser.experience}') AS ur
+      //             WHERE jr = ur
+      //         ) THEN 1
+      //         ELSE 0
+      //     END ) +
+      // 	(  CASE
+      //         WHEN EXISTS (
+      //             SELECT 1
+      //             FROM unnest(jobs.target) AS jr
+      //             CROSS JOIN LATERAL unnest('${preferencesUser.target}') AS ur
+      //             WHERE jr = ur
+      //         ) THEN 1
+      //         ELSE 0
+      //     END ) +
+      // 	(  CASE
+      //         WHEN EXISTS (
+      //             SELECT 1
+      //             FROM unnest(jobs.fields) AS jr
+      //             CROSS JOIN LATERAL unnest('${preferencesUser.fields}') AS ur
+      //             WHERE jr = ur
+      //         ) THEN 1
+      //         ELSE 0
+      //     END ) +
+      // 	(  CASE
+      //         WHEN EXISTS (
+      //             SELECT 1
+      //             FROM unnest(jobs.disponibility) AS jr
+      //             CROSS JOIN LATERAL unnest('${preferencesUser.disponibility}') AS ur
+      //             WHERE jr = ur
+      //         ) THEN 1
+      //         ELSE 0
+      //     END )
+      // ) / 6.0 * 100 AS pourcentage
+      // FROM jobs, users;
+      // `
+      //       )
+      // for (const job of jobs) {
+      //   let matchingCriteria = 0
+      //   if (!idJobs.includes(job.id)) {
+      //     const criteriasArray = [
+      //       ...job.disponibility,
+      //       ...job.experience,
+      //       ...job.target,
+      //       ...job.fields,
+      //       ...job.duration,
+      //       ...job.work_rhythm,
+      //     ]
+
+      //     criteriasArray.forEach((criteria) => {
+      //       Object.keys(preferencesUser).forEach((key) => {
+      //         const criteriaKey = key as PreferenceKey
+      //         if (preferencesUser[criteriaKey].includes(criteria)) {
+      //           matchingCriteria++
+      //         }
+      //       })
+      //     })
+
+      //     const totalCriteriaCount = criteriasArray.length * Object.keys(preferencesUser).length
+      //     const jobPercentage = (matchingCriteria / totalCriteriaCount) * 100
+
+      //     console.log(jobPercentage, 'percentage')
+      //     console.log(totalCriteriaCount, 'criteria')
+      //     console.log(jobPercentage, 'percentage')
+
+      //     if (jobPercentage >= 20) {
+      //       recommendedJobs.push({ job, percentage: jobPercentage })
+      //     }
+      //   } WHERE ( ${formattedArray} IS NULL OR jobs.id NOT IN ${formattedArray}) AND
+      // }
+
+      console.log(jobfiltered, 'jobsssss')
+      // console.log(recommendedJobs, 'jobs')
+      if (!jobfiltered || jobfiltered.length === 0) {
+        return response.status(404).json({
+          message: "Aucun résultat trouvé pour les préférences de l'utilisateur.",
+        })
+      }
       return response.status(200).json(jobfiltered.rows)
     } catch (e) {
       return response.status(500).json({
-        e: "impossible de filtrer les jobs à partir des attentes de l'utilisateur",
+        e: "Impossible de filtrer les jobs à partir des attentes de l'utilisateur",
       })
     }
   }

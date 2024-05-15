@@ -12,16 +12,14 @@ export default class extends BaseSchema {
       table.string('image')
       table.string('age').nullable()
       table.boolean('visible')
-      table.boolean('gender')
-      table.string('location')
-      table.enum('disponibility', ['internship', 'apprenticeship', 'CDI', 'CDD'])
-      table.enum('fields', [
-        'marketing and PR',
-        'admin and assistance',
-        'design',
-        'human ressources',
-      ])
-      table.enum('target', ['large company', 'start-up', 'public institution', 'SME'])
+      table.string('location').nullable()
+
+      table.specificType('disponibility', 'text[]').nullable()
+      table.specificType('fields', 'text[]').nullable()
+      table.specificType('target', 'text[]').nullable()
+      table.specificType('work_rhythm', 'text[]').nullable()
+      table.specificType('duration', 'text[]').nullable()
+      table.specificType('experience', 'text[]').nullable()
 
       table.timestamp('created_at').notNullable()
       table.timestamp('updated_at').nullable()

@@ -28,7 +28,7 @@ export default class Company extends AuthFinder(BaseModel) {
   declare image: string
 
   @hasMany(() => Job)
-  declare Jobs: HasMany<typeof Job>
+  declare jobs: HasMany<typeof Job>
 
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime

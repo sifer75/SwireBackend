@@ -12,63 +12,61 @@ export default class Job extends BaseModel {
   declare name: string
 
   @column()
-  declare image: string
-
-  @column()
-  declare time: number
-
-  @column()
-  declare salary: number
-
-  @column()
-  declare job_description: string
-
-  @column()
-  declare mission: string
-
-  @column()
-  declare competence: string
-
-  @column()
-  declare description: string
-
-  @column()
-  declare value: string
-
-  @column()
-  declare work_rhythm: ('hybrid' | 'on_site' | 'remote')[] | null
-
-  @column()
-  declare study_level: ('phd' | 'master' | 'underground' | 'highschool')[] | null
-
-  @column()
-  declare field_of_study:
-    | ('design' | 'engineering' | 'business_administration' | 'marketing')[]
-    | null
-
-  @column()
-  declare internship_duration: number | null
-
-  @column()
-  declare years_of_experience: ('10years' | '5-10years' | '3-5years' | '-3years')[] | null
-
-  @column()
   declare language: string
 
   @column()
-  declare disponibility: 'internship' | 'apprenticeship' | 'CDI' | 'CDD' | null
+  declare image_font: string
 
   @column()
   declare location: string
 
   @column()
+  declare time: number
+
+  @column()
+  declare salary: number | null
+
+  @column()
+  declare job_description: string | null
+
+  @column()
+  declare mission: string | null
+
+  @column()
+  declare competence: string | null
+
+  @column()
+  declare description: string | null
+
+  @column()
+  declare value: string | null
+
+  @column()
+  declare work_rhythm: string[]
+
+  @column()
+  declare study_level: string[]
+
+  @column()
+  declare field_of_study: string[]
+
+  @column()
+  declare duration: string[]
+
+  @column()
+  declare experience: string[]
+
+  @column()
+  declare disponibility: string[]
+
+  @column()
   declare question: string[]
 
   @column()
-  declare target: 'large company' | 'start-up' | 'public institution' | 'SME' | null
+  declare target: string[]
 
   @column()
-  declare fields: 'marketing and PR' | 'admin and assistance' | 'design' | 'human ressources' | null
+  declare fields: string[]
 
   @belongsTo(() => Company)
   declare company: BelongsTo<typeof Company>

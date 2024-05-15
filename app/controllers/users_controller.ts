@@ -17,7 +17,6 @@ export default class UsersController {
       const user = new User()
       user.email = data.email
       user.password = data.password
-
       await user.save()
       return response.status(201).json(user)
     } catch (e) {
@@ -53,13 +52,11 @@ export default class UsersController {
         return response.status(400).json({ error: 'cookie non trouvé' })
       }
       const userId = auth.user.id
-      const fieldData = request.only(['fields'])
-      const fields = fieldData.fields
+      const fields: string[] = request.only(['fields']).fields
       const user = await User.find(userId)
       if (!user) {
         return response.status(400).json({ error: 'Utilisateur non trouvé' })
       }
-      // user.merge(fields) pourquoi ca marche pas?
       user.fields = fields
       await user.save()
       return response.status(200).json({ user })
@@ -74,8 +71,7 @@ export default class UsersController {
         return response.status(400).json({ error: 'cookie non trouvé' })
       }
       const userId = auth.user.id
-      const targetData = request.only(['target'])
-      const target = targetData.target
+      const target: string[] = request.only(['target']).target
       const user = await User.find(userId)
       if (!user) {
         return response.status(400).json({ error: 'Utilisateur non trouvé' })
@@ -94,13 +90,68 @@ export default class UsersController {
         return response.status(400).json({ error: 'Utilisateur non trouvé' })
       }
       const userId = auth.user.id
-      const disponibilityData = request.only(['disponibility'])
-      const disponibility = disponibilityData.disponibility
+      const disponibility: string[] = request.only(['disponibility']).disponibility
+      console.log(disponibility)
       const user = await User.find(userId)
       if (!user) {
         return response.status(400).json({ error: 'Utilisateur non trouvé' })
       }
       user.disponibility = disponibility
+      await user.save()
+      return response.status(200).json({ user })
+    } catch (e) {
+      return response.status(500).json({ e: 'impossible de update le job' })
+    }
+  }
+
+  async updateRhythm({ request, response, auth }: HttpContext) {
+    try {
+      if (!auth || !auth.user || !auth.user.id) {
+        return response.status(400).json({ error: 'Utilisateur non trouvé' })
+      }
+      const userId = auth.user.id
+      const workRhythm: string[] = request.only(['workRhythm']).workRhythm
+      const user = await User.find(userId)
+      if (!user) {
+        return response.status(400).json({ error: 'Utilisateur non trouvé' })
+      }
+      user.work_rhythm = workRhythm
+      await user.save()
+      return response.status(200).json({ user })
+    } catch (e) {
+      return response.status(500).json({ e: 'impossible de update le job' })
+    }
+  }
+
+  async updateDuration({ request, response, auth }: HttpContext) {
+    try {
+      if (!auth || !auth.user || !auth.user.id) {
+        return response.status(400).json({ error: 'Utilisateur non trouvé' })
+      }
+      const userId = auth.user.id
+      const duration: string[] = request.only(['duration']).duration
+      const user = await User.find(userId)
+      if (!user) {
+        return response.status(400).json({ error: 'Utilisateur non trouvé' })
+      }
+      user.duration = duration
+      await user.save()
+      return response.status(200).json({ user })
+    } catch (e) {
+      return response.status(500).json({ e: 'impossible de update le job' })
+    }
+  }
+
+  async updateExperience({ request, response, auth }: HttpContext) {
+    try {
+      if (!auth || !auth.user || !auth.user.id) {
+        return response.status(400).json({ error: 'Utilisateur non trouvé' })
+      }
+      const userId = auth.user.id
+      const experience = request.only(['experience']).experience
+      const user = await User.find(userId)
+      if (!user) return response.status(400).json({ error: 'Utilisateur non trouvé' })
+      user.experience = experience
       await user.save()
       return response.status(200).json({ user })
     } catch (e) {
@@ -114,8 +165,7 @@ export default class UsersController {
         return response.status(400).json({ error: 'Utilisateur non trouvé' })
       }
       const userId = auth.user.id
-      const locationData = request.only(['location'])
-      const location = locationData.location
+      const location = request.only(['location']).location
       const user = await User.find(userId)
       if (!user) {
         return response.status(400).json({ error: 'Utilisateur non trouvé' })

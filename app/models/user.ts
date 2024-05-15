@@ -13,10 +13,10 @@ const AuthFinder = withAuthFinder(() => hash.use('scrypt'), {
 
 export default class User extends compose(BaseModel, AuthFinder) {
   @column({ isPrimary: true })
-  declare id: string
+  declare id: number
 
   @column()
-  declare name: string
+  declare name: string | null
 
   @column()
   declare email: string
@@ -25,28 +25,37 @@ export default class User extends compose(BaseModel, AuthFinder) {
   declare password: string
 
   @column()
-  declare image: string
+  declare image: string | null
 
   @column()
-  declare age: string
+  declare age: string | null
 
   @column()
   declare visible: boolean
 
   @column()
-  declare disponibility: 'internship' | 'apprenticeship' | 'CDI' | 'CDD'
+  declare location: string | null
 
   @column()
-  declare location: 'paris'
+  declare disponibility: string[] | null
 
   @column()
-  declare target: 'large company' | 'start-up' | 'public institution' | 'SME'
+  declare target: string[] | null
 
   @column()
-  declare fields: 'marketing and PR' | 'admin and assistance' | 'design' | 'human ressources'
+  declare work_rhythm: string[] | null
+
+  @column()
+  declare duration: string[] | null
+
+  @column()
+  declare experience: string[] | null
+
+  @column()
+  declare fields: string[] | null
 
   @manyToMany(() => Job)
-  declare Jobs: ManyToMany<typeof Job>
+  declare jobs: ManyToMany<typeof Job>
 
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
