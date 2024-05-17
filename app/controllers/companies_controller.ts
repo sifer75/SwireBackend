@@ -20,7 +20,6 @@ export default class CompaniesController {
     try {
       const { email, password } = request.only(['email', 'password'])
       const company = await Company.verifyCredentials(email, password)
-      console.log(company)
       if (!company) {
         return response.status(500).json({ e: 'email undefined' })
       }

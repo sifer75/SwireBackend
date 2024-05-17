@@ -1,7 +1,5 @@
 import router from '@adonisjs/core/services/router'
 import { middleware } from './kernel.js'
-import { sep, normalize } from 'node:path'
-import app from '@adonisjs/core/services/app'
 
 const UsersController = () => import('#controllers/users_controller')
 const JobsController = () => import('#controllers/jobs_controller')
@@ -55,29 +53,14 @@ router.post('/job/:id/updatematch', [JobsController, 'updateMatch'])
 router.post('/job/:id/createquestion', [JobsController, 'createQuestion'])
 router.get('/job/:id/getquestion', [JobsController, 'getQuestion'])
 router.delete('/job/:id/delete', [JobsController, 'deleteJob'])
-// router
 
-// .group(() => {
-
-router.get('/company/job/all', [JobsController, 'getJob'])
-router.post('/company/logout', [CompanyController, 'logout'])
-
-// })
-// .use(
-//   middleware.auth({
-//     guards: ['company'],
-//   })
-// )
-
-const PATH_TRAVERSAL_REGEX = /(?:^|[\\/])\.\.(?:[\\/]|$)/
-
-router.get('/uploads/*', ({ request, response }) => {
-  const filePath = request.param('*').join(sep)
-  const normalizedPath = normalize(filePath)
-  if (PATH_TRAVERSAL_REGEX.test(normalizedPath)) {
-    return response.badRequest('Malformed path')
-  }
-  const absolutePath = app.makePath('uploads', normalizedPath)
-
-  return response.download(absolutePath)
-})
+router
+  .group(() => {
+    router.get('/company/job/all', [JobsController, 'getJob'])
+    router.post('/company/logout', [CompanyController, 'logout'])
+  })
+  .use(
+    middleware.auth({
+      guards: ['company'],
+    })
+  )

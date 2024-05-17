@@ -91,7 +91,6 @@ export default class UsersController {
       }
       const userId = auth.user.id
       const disponibility: string[] = request.only(['disponibility']).disponibility
-      console.log(disponibility)
       const user = await User.find(userId)
       if (!user) {
         return response.status(400).json({ error: 'Utilisateur non trouvé' })

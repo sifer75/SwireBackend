@@ -60,15 +60,15 @@ export default class JobsController {
       if (!imageFont) {
         return response.status(400).send({ message: "Aucune image n'a été téléchargée." })
       }
-      const base64Data = imageFont.replace(/^data:image\/\w+;base64,/, '')
-      const dataBuffer = Buffer.from(base64Data, 'base64')
-      const fileName = `${cuid()}.${getExtensionFromBase64(imageFont)}`
-      const uploadsDirectory = app.makePath('uploads')
-      if (!fs.existsSync(uploadsDirectory)) {
-        fs.mkdirSync(uploadsDirectory, { recursive: true })
-      }
-      const filePath = path.join(app.makePath('uploads'), fileName)
-      fs.writeFileSync(filePath, dataBuffer)
+      // const base64Data = imageFont.replace(/^data:image\/\w+;base64,/, '')
+      // const dataBuffer = Buffer.from(base64Data, 'base64')
+      // const fileName = `${cuid()}.${getExtensionFromBase64(imageFont)}`
+      // const uploadsDirectory = app.makePath('uploads')
+      // if (!fs.existsSync(uploadsDirectory)) {
+      //   fs.mkdirSync(uploadsDirectory, { recursive: true })
+      // }
+      // const filePath = path.join(app.makePath('uploads'), fileName)
+      // fs.writeFileSync(filePath, dataBuffer)
 
       const job = new Job()
       job.name = name
@@ -79,7 +79,7 @@ export default class JobsController {
       job.target = target
       job.fields = fields
       job.language = language
-      job.image_font = fileName
+      job.image_font = imageFont
       await job.save()
       return response.status(201).json(job)
     } catch (error) {
@@ -146,7 +146,6 @@ export default class JobsController {
       }
       let questionArray: string[] = job.question || []
       questionArray.push(question)
-      console.log(questionArray)
       job.question = questionArray
       await job.save()
       return response.status(201).json(job)
@@ -266,29 +265,8 @@ export default class JobsController {
       const durationString = `ARRAY['${preferencesUser.duration.join("', '")}']`
       const workRhythmString = `ARRAY['${preferencesUser.work_rhythm.join("', '")}']`
       const targetString = `ARRAY['${preferencesUser.target.join("', '")}']`
-      console.log(
-        experienceString,
-        fieldsString,
-        disponibilityString,
-        durationString,
-        workRhythmString,
-        targetString,
-        'coucou'
-      )
-      console.log(
-        preferencesUser.experience,
-        preferencesUser.fields,
-        preferencesUser.disponibility,
-        preferencesUser.duration,
-        preferencesUser.work_rhythm,
-        preferencesUser.target,
-        'coucou2'
-      )
-
       const jobfiltered: any = await db.rawQuery(
         `   
-
-
         SELECT jobs.*,  
         ( 
             (
@@ -299,7 +277,7 @@ export default class JobsController {
                 (CASE WHEN ARRAY(SELECT unnest(${workRhythmString})) && ARRAY(SELECT unnest(jobs.work_rhythm)) THEN 1 ELSE 0 END) +
                 (CASE WHEN ARRAY(SELECT unnest(${targetString})) && ARRAY(SELECT unnest(jobs.target)) THEN 1 ELSE 0 END)
             ) / 6.0 * 100
-        ) AS pourcentage
+        ) AS percentage
     FROM 
         jobs, users
     WHERE ( ${formattedArray} IS NULL OR jobs.id NOT IN ${formattedArray}) AND
@@ -314,106 +292,9 @@ export default class JobsController {
             ) / 6.0 * 100
         ) > 0
     ORDER BY 
-        pourcentage DESC;
+        percentage DESC;
     `
       )
-
-      // SELECT jobs.*,
-      // (
-      //   (  CASE
-      //         WHEN EXISTS (
-      //             SELECT 1
-      //             FROM unnest(jobs.work_rhythm) AS jr
-      //             CROSS JOIN LATERAL unnest('${preferencesUser.work_rhythm}') AS ur
-      //             WHERE jr = ur
-      //         ) THEN 1
-      //         ELSE 0
-      //     END ) +
-      // 	(  CASE
-      //         WHEN EXISTS (
-      //             SELECT 1
-      //             FROM unnest(jobs.duration) AS jr
-      //             CROSS JOIN LATERAL unnest('${preferencesUser.duration}') AS ur
-      //             WHERE jr = ur
-      //         ) THEN 1
-      //         ELSE 0
-      //     END ) +
-      // 	(  CASE
-      //         WHEN EXISTS (
-      //             SELECT 1
-      //             FROM unnest(jobs.experience) AS jr
-      //             CROSS JOIN LATERAL unnest('${preferencesUser.experience}') AS ur
-      //             WHERE jr = ur
-      //         ) THEN 1
-      //         ELSE 0
-      //     END ) +
-      // 	(  CASE
-      //         WHEN EXISTS (
-      //             SELECT 1
-      //             FROM unnest(jobs.target) AS jr
-      //             CROSS JOIN LATERAL unnest('${preferencesUser.target}') AS ur
-      //             WHERE jr = ur
-      //         ) THEN 1
-      //         ELSE 0
-      //     END ) +
-      // 	(  CASE
-      //         WHEN EXISTS (
-      //             SELECT 1
-      //             FROM unnest(jobs.fields) AS jr
-      //             CROSS JOIN LATERAL unnest('${preferencesUser.fields}') AS ur
-      //             WHERE jr = ur
-      //         ) THEN 1
-      //         ELSE 0
-      //     END ) +
-      // 	(  CASE
-      //         WHEN EXISTS (
-      //             SELECT 1
-      //             FROM unnest(jobs.disponibility) AS jr
-      //             CROSS JOIN LATERAL unnest('${preferencesUser.disponibility}') AS ur
-      //             WHERE jr = ur
-      //         ) THEN 1
-      //         ELSE 0
-      //     END )
-      // ) / 6.0 * 100 AS pourcentage
-      // FROM jobs, users;
-      // `
-      //       )
-      // for (const job of jobs) {
-      //   let matchingCriteria = 0
-      //   if (!idJobs.includes(job.id)) {
-      //     const criteriasArray = [
-      //       ...job.disponibility,
-      //       ...job.experience,
-      //       ...job.target,
-      //       ...job.fields,
-      //       ...job.duration,
-      //       ...job.work_rhythm,
-      //     ]
-
-      //     criteriasArray.forEach((criteria) => {
-      //       Object.keys(preferencesUser).forEach((key) => {
-      //         const criteriaKey = key as PreferenceKey
-      //         if (preferencesUser[criteriaKey].includes(criteria)) {
-      //           matchingCriteria++
-      //         }
-      //       })
-      //     })
-
-      //     const totalCriteriaCount = criteriasArray.length * Object.keys(preferencesUser).length
-      //     const jobPercentage = (matchingCriteria / totalCriteriaCount) * 100
-
-      //     console.log(jobPercentage, 'percentage')
-      //     console.log(totalCriteriaCount, 'criteria')
-      //     console.log(jobPercentage, 'percentage')
-
-      //     if (jobPercentage >= 20) {
-      //       recommendedJobs.push({ job, percentage: jobPercentage })
-      //     }
-      //   } WHERE ( ${formattedArray} IS NULL OR jobs.id NOT IN ${formattedArray}) AND
-      // }
-
-      console.log(jobfiltered, 'jobsssss')
-      // console.log(recommendedJobs, 'jobs')
       if (!jobfiltered || jobfiltered.length === 0) {
         return response.status(404).json({
           message: "Aucun résultat trouvé pour les préférences de l'utilisateur.",
@@ -433,8 +314,7 @@ export default class JobsController {
     try {
       const jobId = params.id
       const job = await Job.findOrFail(jobId)
-      const user = auth.user
-
+      const user = auth.user?.id.toString()
       if (!job) {
         return response.badRequest({ message: "le job n'existe pas" })
       }
@@ -444,10 +324,7 @@ export default class JobsController {
           e: "impossible de filtrer les jobs à partir des attentes de l'utilisateur",
         })
       } else {
-        const isLiked = await Like.query()
-          .where('job_id', jobId)
-          .andWhere('user_id', user.id)
-          .first()
+        const isLiked = await Like.query().where('job_id', jobId).andWhere('user_id', user).first()
 
         if (isLiked) {
           return response.badRequest({ message: 'tu as déjà like ce job' })
@@ -455,7 +332,7 @@ export default class JobsController {
       }
       const like = new Like()
       like.job_id = jobId
-      like.user_id = user.id
+      like.user_id = user
       like.like_status = 'like'
 
       await like.save()
@@ -471,7 +348,7 @@ export default class JobsController {
     try {
       const jobId = params.id
       const job = await Job.findOrFail(jobId)
-      const user = auth.user
+      const user = auth.user?.id.toString()
 
       if (!job) {
         return response.badRequest({ message: "le job n'existe pas" })
@@ -484,7 +361,7 @@ export default class JobsController {
       } else {
         const isDisliked = await Like.query()
           .where('job_id', jobId)
-          .andWhere('user_id', user.id)
+          .andWhere('user_id', user)
           .first()
 
         if (isDisliked) {
@@ -493,7 +370,7 @@ export default class JobsController {
       }
       const like = new Like()
       like.job_id = jobId
-      like.user_id = user.id
+      like.user_id = user
       like.like_status = 'dislike'
       await like.save()
       return response.status(200).json({ message: 'job disliké' })
