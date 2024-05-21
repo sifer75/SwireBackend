@@ -47,17 +47,17 @@ router
     })
   )
 
+router.get('/job/:id/getquestion', [JobsController, 'getQuestion'])
+router.delete('/job/:id/delete', [JobsController, 'deleteJob'])
+
 router.post('/company/job/create', [JobsController, 'createJobPreferences'])
 router.post('/job/:id/updatedescription', [JobsController, 'updateJobDescription'])
 router.post('/job/:id/updatematch', [JobsController, 'updateMatch'])
 router.post('/job/:id/createquestion', [JobsController, 'createQuestion'])
-router.get('/job/:id/getquestion', [JobsController, 'getQuestion'])
-router.delete('/job/:id/delete', [JobsController, 'deleteJob'])
-
 router
   .group(() => {
-    router.get('/company/job/all', [JobsController, 'getJob'])
     router.post('/company/logout', [CompanyController, 'logout'])
+    router.get('/company/job/all', [JobsController, 'getJob'])
   })
   .use(
     middleware.auth({

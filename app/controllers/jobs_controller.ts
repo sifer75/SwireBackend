@@ -2,11 +2,7 @@ import Company from '#models/company'
 import Job from '#models/job'
 import Like from '#models/like'
 import User from '#models/user'
-import { cuid } from '@adonisjs/core/helpers'
 import type { HttpContext } from '@adonisjs/core/http'
-import app from '@adonisjs/core/services/app'
-import path from 'node:path'
-import fs from 'node:fs'
 import db from '@adonisjs/lucid/services/db'
 
 export default class JobsController {
@@ -14,17 +10,9 @@ export default class JobsController {
 
   async createJobPreferences({ request, response }: HttpContext) {
     try {
-      const getExtensionFromBase64 = (base64Data: string): string => {
-        const extensionRegExp = /(?:image\/)(\w+)/
-        const result = base64Data.match(extensionRegExp)
-        if (result && result.length === 2) {
-          return result[1]
-        } else {
-          throw new Error(
-            "Impossible de déterminer l'extension du fichier à partir des données base64."
-          )
-        }
-      }
+      // if (!auth || !auth.user || !auth.user.id) {
+      //   return response.status(401).send({ message: 'utilisateur non trouvé' })
+      // }
 
       const {
         name,
@@ -60,15 +48,8 @@ export default class JobsController {
       if (!imageFont) {
         return response.status(400).send({ message: "Aucune image n'a été téléchargée." })
       }
-      // const base64Data = imageFont.replace(/^data:image\/\w+;base64,/, '')
-      // const dataBuffer = Buffer.from(base64Data, 'base64')
-      // const fileName = `${cuid()}.${getExtensionFromBase64(imageFont)}`
-      // const uploadsDirectory = app.makePath('uploads')
-      // if (!fs.existsSync(uploadsDirectory)) {
-      //   fs.mkdirSync(uploadsDirectory, { recursive: true })
-      // }
-      // const filePath = path.join(app.makePath('uploads'), fileName)
-      // fs.writeFileSync(filePath, dataBuffer)
+
+      // const company = auth.user as Company
 
       const job = new Job()
       job.name = name
@@ -80,6 +61,9 @@ export default class JobsController {
       job.fields = fields
       job.language = language
       job.image_font = imageFont
+
+      // await job.related('company').associate(company)
+
       await job.save()
       return response.status(201).json(job)
     } catch (error) {
@@ -170,11 +154,9 @@ export default class JobsController {
     }
   }
 
-  // avoir les jobs avec une queue
-
   async getJob({ auth, response }: HttpContext) {
     try {
-      if (!auth || !auth.user || auth.user.id) {
+      if (!auth || !auth.user || !auth.user.id) {
         return response.status(400).json({ error: 'cookie non trouvé' })
       }
       const companyId = auth.user.id
@@ -182,9 +164,24 @@ export default class JobsController {
       if (!company) {
         return response.status(400).json({ error: 'Companie non trouvé' })
       }
-      const jobs = await company.related('jobs').query()
-      const jobNumber = jobs.length || 0
-      return response.status(200).json(jobNumber)
+      console.log('coucou')
+      const jobCountResult = await db.rawQuery(
+        `
+        SELECT COUNT(*) as jobCount
+        FROM jobs
+        WHERE id = ${companyId}
+        `,
+        [companyId]
+      )
+      console.log(jobCountResult, 'rr')
+      if (!jobCountResult || jobCountResult.length === 0) {
+        console.error('Aucun job trouvé pour cette compagnie')
+        return response.status(400).json({ error: 'Aucun job trouvé pour cette compagnie' })
+      }
+      const jobCount = jobCountResult[0].jobCount
+
+      console.log('Nombre de jobs:', jobCount)
+      return response.status(200).json({ jobCount })
     } catch (e) {
       return response.json({ e: "impossible de supprimer l'offre" })
     }
