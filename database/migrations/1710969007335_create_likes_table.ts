@@ -8,6 +8,7 @@ export default class extends BaseSchema {
       table.increments('id')
       table.integer('job_id').unsigned().notNullable()
       table.integer('user_id').unsigned().notNullable()
+      table.enum('review_status', ['accepted', 'pending', 'refused']).defaultTo('pending')
       table.enum('like_status', ['like', 'dislike']).notNullable()
       table.timestamp('created_at')
       table.timestamp('updated_at')

@@ -6,12 +6,11 @@ import type { Authenticators } from '@adonisjs/auth/types'
  * Auth middleware is used authenticate HTTP requests and deny
  * access to unauthenticated users.
  */
+
 export default class AuthMiddleware {
   /**
    * The URL to redirect to, when authentication fails
    */
-  redirectTo = '/login'
-
   async handle(
     ctx: HttpContext,
     next: NextFn,
@@ -19,7 +18,12 @@ export default class AuthMiddleware {
       guards?: (keyof Authenticators)[]
     } = {}
   ) {
-    await ctx.auth.authenticateUsing(options.guards, { loginRoute: this.redirectTo })
+    const redirectTo = options.guards?.includes('company') ? '/company/login' : '/user/login'
+    try {
+      await ctx.auth.authenticateUsing(options.guards, { loginRoute: redirectTo })
+    } catch (e) {
+      ctx.response.redirect(redirectTo)
+    }
     return next()
   }
 }

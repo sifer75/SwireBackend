@@ -1,5 +1,6 @@
 import Company from '#models/company'
-import type { HttpContext } from '@adonisjs/core/http'
+import User from '#models/user'
+import { HttpContext } from '@adonisjs/core/http'
 
 export default class CompaniesController {
   async createCompany({ request, response }: HttpContext) {
@@ -13,6 +14,22 @@ export default class CompaniesController {
       return response.status(201).json(company)
     } catch (e) {
       return response.status(500).json({ e: 'impossible de créer la companie' })
+    }
+  }
+
+  async findCompany({ response, auth }: HttpContext) {
+    try {
+      if (!auth || !auth.user || !auth.user.id) {
+        return response.status(400).json({ error: 'Company non trouvée' })
+      }
+      const companyId = auth.user.id
+      const company = await Company.find(companyId)
+      if (!company) {
+        return response.status(400).json({ error: 'company non trouvée' })
+      }
+      return response.json(company)
+    } catch (e) {
+      return response.status(500).json({ e: 'impossible de trouver le job loggé' })
     }
   }
 
@@ -58,6 +75,89 @@ export default class CompaniesController {
       return response.status(200).json({ message: 'Mot de passe modifié avec succès' })
     } catch (e) {
       return response.status(500).send({ message: 'impossible de se déconnecter', e })
+    }
+  }
+  async getNumberOfUserWhoLikedJob({ auth, response }: HttpContext) {
+    try {
+      if (!auth || !auth.user || !auth.user.id) {
+        return response.status(400).json({ error: 'cookie non trouvé' })
+      }
+      const companyId = auth.user.id
+      const company = await Company.find(companyId)
+      if (!company) {
+        return response.status(400).json({ error: 'Companie non trouvé' })
+      }
+      await company.load('jobs', (query) => {
+        query.preload('likes', (likeQuery: any) => {
+          likeQuery.where('like_status', 'like').preload('user')
+        })
+      })
+
+      const jobsFromCompany = company.jobs
+      const usersWhoLikedJobs = jobsFromCompany.reduce(
+        (users, job) => {
+          job.likes.forEach((like) => {
+            const user = like.user
+            users.push(user)
+          })
+          return users
+        },
+        new Array([] as any)
+      )
+
+      const usersArray = Array.from(usersWhoLikedJobs)
+      const userNumber = usersArray.length
+
+      return response.status(200).json({ userNumber })
+    } catch (e) {
+      return response
+        .status(500)
+        .send({ message: 'impossible de trouver le nombre de users qui ont liké le job', e })
+    }
+  }
+
+  async getUserWhoLikedJob({ auth, response }: HttpContext) {
+    try {
+      if (!auth || !auth.user || !auth.user.id) {
+        return response.status(400).json({ error: 'cookie non trouvé' })
+      }
+      const companyId = auth.user.id
+      const company = await Company.find(companyId)
+      if (!company) {
+        return response.status(400).json({ error: 'Companie non trouvé' })
+      }
+      await company.load('jobs', (query) => {
+        query.preload('likes', (likeQuery: any) => {
+          likeQuery.where('like_status', 'like').preload('user')
+        })
+      })
+      const jobsFromCompany = company.jobs
+      const usersWhoLikedJobs: User[] = jobsFromCompany.reduce((users: User[], job) => {
+        job.likes.forEach((like) => {
+          const user = like.user as User
+          users.push(user)
+        })
+        return users
+      }, [] as User[])
+
+      return response.status(200).json(usersWhoLikedJobs)
+    } catch (e) {
+      return response
+        .status(500)
+        .send({ message: 'impossible de trouver le user qui a liké le job', e })
+    }
+  }
+
+  async findUserWithId({ params, response }: HttpContext) {
+    try {
+      const userId = params.id
+      const user = await User.findOrFail(userId)
+      const userTab = [user]
+      return response.status(201).json( userTab )
+    } catch (e) {
+      return response
+        .status(500)
+        .send({ message: 'impossible de trouver le user qui a liké le job', e })
     }
   }
 }

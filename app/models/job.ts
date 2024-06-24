@@ -1,8 +1,9 @@
 import { DateTime } from 'luxon'
-import { BaseModel, column, belongsTo, manyToMany } from '@adonisjs/lucid/orm'
+import { BaseModel, column, belongsTo, manyToMany, hasMany } from '@adonisjs/lucid/orm'
 import Company from './company.js'
 import User from './user.js'
-import type { BelongsTo, ManyToMany } from '@adonisjs/lucid/types/relations'
+import type { BelongsTo, ManyToMany, HasMany } from '@adonisjs/lucid/types/relations'
+import Like from './like.js'
 
 export default class Job extends BaseModel {
   @column({ isPrimary: true })
@@ -71,8 +72,14 @@ export default class Job extends BaseModel {
   @belongsTo(() => Company)
   declare company: BelongsTo<typeof Company>
 
+  @column()
+  declare companyId: number
+
   @manyToMany(() => User)
   declare user: ManyToMany<typeof User>
+
+  @hasMany(() => Like, { foreignKey: 'job_id' })
+  declare likes: HasMany<typeof Like>
 
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime

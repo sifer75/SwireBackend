@@ -8,11 +8,11 @@ import db from '@adonisjs/lucid/services/db'
 export default class JobsController {
   // creer un job
 
-  async createJobPreferences({ request, response }: HttpContext) {
+  async createJobPreferences({ auth, request, response }: HttpContext) {
     try {
-      // if (!auth || !auth.user || !auth.user.id) {
-      //   return response.status(401).send({ message: 'utilisateur non trouvé' })
-      // }
+      if (!auth || !auth.user || !auth.user.id) {
+        return response.status(401).send({ message: 'utilisateur non trouvé' })
+      }
 
       const {
         name,
@@ -48,9 +48,8 @@ export default class JobsController {
       if (!imageFont) {
         return response.status(400).send({ message: "Aucune image n'a été téléchargée." })
       }
-
-      // const company = auth.user as Company
-
+      const company = await Company.find(auth.user.id)
+      if (!company) throw new Error('impossible de trouver la companie')
       const job = new Job()
       job.name = name
       job.salary = salary
@@ -61,10 +60,9 @@ export default class JobsController {
       job.fields = fields
       job.language = language
       job.image_font = imageFont
+      job.companyId = company.id
 
-      // await job.related('company').associate(company)
-
-      await job.save()
+      await company?.related('jobs').save(job)
       return response.status(201).json(job)
     } catch (error) {
       console.log(error)
@@ -164,24 +162,9 @@ export default class JobsController {
       if (!company) {
         return response.status(400).json({ error: 'Companie non trouvé' })
       }
-      console.log('coucou')
-      const jobCountResult = await db.rawQuery(
-        `
-        SELECT COUNT(*) as jobCount
-        FROM jobs
-        WHERE id = ${companyId}
-        `,
-        [companyId]
-      )
-      console.log(jobCountResult, 'rr')
-      if (!jobCountResult || jobCountResult.length === 0) {
-        console.error('Aucun job trouvé pour cette compagnie')
-        return response.status(400).json({ error: 'Aucun job trouvé pour cette compagnie' })
-      }
-      const jobCount = jobCountResult[0].jobCount
+      const jobResult = await company.related('jobs').query().preload('likes').exec()
 
-      console.log('Nombre de jobs:', jobCount)
-      return response.status(200).json({ jobCount })
+      return response.status(200).json(jobResult)
     } catch (e) {
       return response.json({ e: "impossible de supprimer l'offre" })
     }
@@ -311,7 +294,7 @@ export default class JobsController {
     try {
       const jobId = params.id
       const job = await Job.findOrFail(jobId)
-      const user = auth.user?.id.toString()
+      const user = auth.user?.id
       if (!job) {
         return response.badRequest({ message: "le job n'existe pas" })
       }
@@ -345,7 +328,7 @@ export default class JobsController {
     try {
       const jobId = params.id
       const job = await Job.findOrFail(jobId)
-      const user = auth.user?.id.toString()
+      const user = auth.user?.id
 
       if (!job) {
         return response.badRequest({ message: "le job n'existe pas" })

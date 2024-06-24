@@ -27,6 +27,8 @@ export default class extends BaseSchema {
       table.string('competence').nullable()
       table.string('description').nullable()
       table.string('value').nullable()
+      table.integer('company_id').references('id').inTable('companies')
+
       table.timestamp('created_at')
       table.timestamp('updated_at')
     })

@@ -1,8 +1,9 @@
 import { DateTime } from 'luxon'
-import { BaseModel, column, hasMany } from '@adonisjs/lucid/orm'
-import Job from './job.js'
 import { withAuthFinder } from '@adonisjs/auth'
 import hash from '@adonisjs/core/services/hash'
+import { compose } from '@adonisjs/core/helpers'
+import { BaseModel, column, hasMany } from '@adonisjs/lucid/orm'
+import Job from './job.js'
 
 import type { HasMany } from '@adonisjs/lucid/types/relations'
 
@@ -11,9 +12,9 @@ const AuthFinder = withAuthFinder(() => hash.use('scrypt'), {
   passwordColumnName: 'password',
 })
 
-export default class Company extends AuthFinder(BaseModel) {
+export default class Company extends compose(BaseModel, AuthFinder) {
   @column({ isPrimary: true })
-  declare id: string
+  declare id: number
 
   @column()
   declare name: string

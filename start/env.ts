@@ -42,5 +42,5 @@ export default await Env.create(new URL('../', import.meta.url), {
   |----------------------------------------------------------
   */
   LINKEDIN_CLIENT_ID: Env.schema.string(),
-  LINKEDIN_CLIENT_SECRET: Env.schema.string()
+  LINKEDIN_CLIENT_SECRET: Env.schema.string(),
 })

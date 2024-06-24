@@ -29,7 +29,11 @@ export default class UsersController {
       if (!auth || !auth.user || !auth.user.id) {
         return response.status(400).json({ error: 'cookie non trouvé' })
       }
-      const data = request.only(['name', 'age', 'visible'])
+      const data = request.only(['name', 'age', 'visible', 'image'])
+      if (!data.image) {
+        return response.status(400).send({ message: "Aucune image n'a été téléchargée." })
+      }
+      console.log(data.image, 'coucou')
       const userId = auth.user.id
       const user = await User.find(userId)
       if (!user) {
@@ -38,10 +42,14 @@ export default class UsersController {
       user.name = data.name
       user.age = data.age
       user.visible = data.visible
+      user.image = data.image
 
       await user.save()
+      // const user = await User.find(auth.user.id)
+      // if (!user) throw new Error('impossible de trouver le user')
       return response.status(201).json(user)
     } catch (e) {
+      console.log(e, 'error')
       return response.status(500).json({ e: 'impossible de créer le user' })
     }
   }
@@ -180,7 +188,7 @@ export default class UsersController {
   async store({ request, auth, response }: HttpContext) {
     const { email, password } = request.only(['email', 'password'])
     const user = await User.verifyCredentials(email, password)
-    await auth.use('web').login(user)
+    await auth.use('user').login(user)
     response.redirect('/dashboard')
   }
 
@@ -219,7 +227,7 @@ export default class UsersController {
       if (!user) {
         return response.status(500).json({ e: 'email undefined' })
       }
-      await auth.use('web').login(user)
+      await auth.use('user').login(user)
       return response.status(200).json({ message: 'Connexion réussie', user })
     } catch (error) {
       return response.status(500).send({ message: 'impossible de se connecter', error })
@@ -230,7 +238,7 @@ export default class UsersController {
 
   async logout({ auth, response }: HttpContext) {
     try {
-      await auth.use('web').logout()
+      await auth.use('user').logout()
       return response.status(200).json('utilisateur déconnecté')
     } catch (error) {
       return response.status(500).send({ message: 'impossible de se déconnecter', error })
