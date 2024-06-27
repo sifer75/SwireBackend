@@ -6,8 +6,6 @@ import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 
 export default class JobsController {
-  // creer un job
-
   async createJobPreferences({ auth, request, response }: HttpContext) {
     try {
       if (!auth || !auth.user || !auth.user.id) {
@@ -126,9 +124,7 @@ export default class JobsController {
       if (!job) {
         return response.status(404).json({ error: 'Job not found' })
       }
-      let questionArray: string[] = job.question || []
-      questionArray.push(question)
-      job.question = questionArray
+      job.question = [question]
       await job.save()
       return response.status(201).json(job)
     } catch (error) {
@@ -191,8 +187,6 @@ export default class JobsController {
     }
   }
 
-  // supprimer un job
-
   async deleteJob({ params, response }: HttpContext) {
     try {
       const jobId = await params.id
@@ -214,14 +208,12 @@ export default class JobsController {
 
   async filterJobsByUserPreference({ response, auth }: HttpContext) {
     try {
-      const user = auth.user
-      if (!user) {
+      if (!auth || !auth.user || !auth.user.id) {
         return response.status(500).json({
           e: "Impossible de filtrer les jobs à partir des attentes de l'utilisateur",
         })
       }
-
-      const preferencesUser = await User.findOrFail(user.id)
+      const preferencesUser = await User.findOrFail(auth.user.id)
       if (
         !preferencesUser.experience ||
         !preferencesUser.duration ||
@@ -234,11 +226,13 @@ export default class JobsController {
           e: "Impossible de filtrer les jobs à partir des attentes de l'utilisateur",
         })
       }
-      const likedOrDislikedJobs = await Like.all()
-      const idJobs = likedOrDislikedJobs.map((job) => job.job_id)
-      const formattedArray = idJobs.length > 0 ? `('${idJobs.join("', '")}')` : '(NULL)'
 
-      // Convertir les valeurs nettoyées en chaînes de caractères pour la requête SQL
+      const likedOrDislikedJobs = await Like.query().where('user_id', auth.user.id)
+      const formattedArray =
+        likedOrDislikedJobs.length > 0
+          ? `('${likedOrDislikedJobs.map((job) => job.job_id).join("', '")}')`
+          : '(NULL)'
+
       const experienceString = `ARRAY['${preferencesUser.experience.join("', '")}']`
       const fieldsString = `ARRAY['${preferencesUser.fields.join("', '")}']`
       const disponibilityString = `ARRAY['${preferencesUser.disponibility.join("', '")}']`
@@ -246,9 +240,9 @@ export default class JobsController {
       const workRhythmString = `ARRAY['${preferencesUser.work_rhythm.join("', '")}']`
       const targetString = `ARRAY['${preferencesUser.target.join("', '")}']`
       const jobfiltered: any = await db.rawQuery(
-        `   
-        SELECT jobs.*,  
-        ( 
+        `
+        SELECT jobs.*,
+        (
             (
                 (CASE WHEN ARRAY(SELECT unnest(${experienceString})) && ARRAY(SELECT unnest(jobs.experience)) THEN 1 ELSE 0 END) +
                 (CASE WHEN ARRAY(SELECT unnest(${fieldsString})) && ARRAY(SELECT unnest(jobs.fields)) THEN 1 ELSE 0 END) +
@@ -258,7 +252,7 @@ export default class JobsController {
                 (CASE WHEN ARRAY(SELECT unnest(${targetString})) && ARRAY(SELECT unnest(jobs.target)) THEN 1 ELSE 0 END)
             ) / 6.0 * 100
         ) AS percentage
-    FROM 
+    FROM
         jobs, users
     WHERE ( ${formattedArray} IS NULL OR jobs.id NOT IN ${formattedArray}) AND
         (
@@ -271,15 +265,17 @@ export default class JobsController {
                 (CASE WHEN ARRAY(SELECT unnest(${targetString})) && ARRAY(SELECT unnest(jobs.target)) THEN 1 ELSE 0 END)
             ) / 6.0 * 100
         ) > 0
-    ORDER BY 
+    ORDER BY
         percentage DESC;
     `
       )
+
       if (!jobfiltered || jobfiltered.length === 0) {
         return response.status(404).json({
           message: "Aucun résultat trouvé pour les préférences de l'utilisateur.",
         })
       }
+      console.log(jobfiltered)
       return response.status(200).json(jobfiltered.rows)
     } catch (e) {
       return response.status(500).json({
@@ -287,8 +283,6 @@ export default class JobsController {
       })
     }
   }
-
-  // liker un job
 
   async likeJob({ params, response, auth }: HttpContext) {
     try {
@@ -321,8 +315,6 @@ export default class JobsController {
       return response.status(500).json({ e: 'impossible de liker le job' })
     }
   }
-
-  // disliker un job
 
   async dislikeJob({ params, response, auth }: HttpContext) {
     try {

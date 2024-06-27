@@ -28,6 +28,9 @@ export default class User extends compose(BaseModel, AuthFinder) {
   declare image: string | null
 
   @column()
+  declare cv: string | null
+
+  @column()
   declare age: string | null
 
   @column()

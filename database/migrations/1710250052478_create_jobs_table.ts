@@ -8,7 +8,7 @@ export default class extends BaseSchema {
       table.increments('id').primary()
       table.string('name').notNullable()
       table.string('language')
-      table.text('image_font', 'longtext')
+      table.text('image_font', 'text[]')
       table.string('location')
 
       table.specificType('disponibility', 'text[]')

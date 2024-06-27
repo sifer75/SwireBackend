@@ -53,6 +53,7 @@ router.delete('/job/:id/delete', [JobsController, 'deleteJob'])
 router
   .group(() => {
     router.post('/company/job/create', [JobsController, 'createJobPreferences'])
+    router.post('/company/update', [CompanyController, 'updateCompany'])
     router.get('/company', [CompanyController, 'findCompany'])
     router.post('/job/:id/updatedescription', [JobsController, 'updateJobDescription'])
     router.post('/job/:id/updatematch', [JobsController, 'updateMatch'])
@@ -60,7 +61,7 @@ router
     router.post('/company/logout', [CompanyController, 'logout'])
     router.get('/company/job/all', [JobsController, 'getJob'])
     router.get('/company/job/countlikedbyuser', [CompanyController, 'getNumberOfUserWhoLikedJob'])
-    router.get('/company/job/likedbyuser', [CompanyController, 'getUserWhoLikedJob'])
+    router.get('/company/job/:id/likedbyuser', [CompanyController, 'getUserWhoLikedJob'])
     router.get('/user/:id', [CompanyController, 'findUserWithId'])
   })
   .use(
